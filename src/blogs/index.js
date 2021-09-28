@@ -1,61 +1,44 @@
 import express from "express";
-
-import fs from "fs";
-
-import uniqid from "uniqid";
-
-import path, { dirname } from "path";
-
-import { fileURLToPath } from "url";
-import { parseFile } from "../utils/upload/index.js";
-
+import basicMiddleware from "../utils/auth/basic.js";
+import onlyOwner from "../utils/auth/onlyOwner.js";
+import Blogs from "./schema.js";
 import {
   checkBlogPostSchema,
   checkCommentSchema,
-  checkSearchSchema,
   checkValidationResult,
 } from "./validation.js";
-import { generateBlogPDF } from "../utils/pdf/index.js";
-
-const __filename = fileURLToPath(import.meta.url);
-
-const __dirname = dirname(__filename);
-
-const blogsFilePath = path.join(__dirname, "blogs.json");
 
 const router = express.Router();
 
 // get all blogs
 router.get("/", async (req, res, next) => {
   try {
-    const fileAsBuffer = fs.readFileSync(blogsFilePath);
-    const fileAsString = fileAsBuffer.toString();
-    const fileAsJSON = JSON.parse(fileAsString);
-    res.send(fileAsJSON);
+    const blogs = await Blogs.find({}).populate({
+      path: "author",
+      select: "name surname avatar",
+    });
+    res.send(blogs);
   } catch (error) {
+    console.log({ error });
     res.send(500).send({ message: error.message });
   }
 });
 
-router.get(
-  "/search",
-  checkSearchSchema,
-  checkValidationResult,
-  async (req, res, next) => {
-    try {
-      const { title } = req.query;
-      const fileAsBuffer = fs.readFileSync(blogsFilePath);
-      const fileAsString = fileAsBuffer.toString();
-      const array = JSON.parse(fileAsString);
-      const filtered = array.filter((blog) =>
-        blog.title.toLowerCase().includes(title.toLowerCase())
-      );
-      res.send(filtered);
-    } catch (error) {
-      res.send(500).send({ message: error.message });
-    }
-  }
-);
+// router.get(
+//   "/search",
+//   checkSearchSchema,
+//   checkValidationResult,
+//   async (req, res, next) => {
+//     try {
+//       const { title } = req.query;
+//       //regex match ?
+//       const filtered = await Blogs.find({ title });
+//       res.send(filtered);
+//     } catch (error) {
+//       res.send(500).send({ message: error.message });
+//     }
+//   }
+// );
 
 // create  blog
 router.post(
@@ -64,90 +47,64 @@ router.post(
   checkValidationResult,
   async (req, res, next) => {
     try {
-      const blog = {
-        id: uniqid(),
-        ...req.body,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      const fileAsBuffer = fs.readFileSync(blogsFilePath);
-
-      const fileAsString = fileAsBuffer.toString();
-
-      const fileAsJSONArray = JSON.parse(fileAsString);
-
-      fileAsJSONArray.push(blog);
-
-      fs.writeFileSync(blogsFilePath, JSON.stringify(fileAsJSONArray));
-
-      res.send(blog);
+      const blog = await new Blogs(req.body).save();
+      res.status(201).send(blog);
     } catch (error) {
+      console.log(error);
       res.send(500).send({ message: error.message });
     }
   }
 );
 
 // get single blogs
-router.get("/:id/pdf", async (req, res, next) => {
-  try {
-    const fileAsBuffer = fs.readFileSync(blogsFilePath);
+// router.get("/:id/pdf", async (req, res, next) => {
+//   try {
+//     const fileAsBuffer = fs.readFileSync(blogsFilePath);
 
-    const fileAsString = fileAsBuffer.toString();
+//     const fileAsString = fileAsBuffer.toString();
 
-    const fileAsJSONArray = JSON.parse(fileAsString);
+//     const fileAsJSONArray = JSON.parse(fileAsString);
 
-    const blog = fileAsJSONArray.find((blog) => blog.id === req.params.id);
-    if (!blog) {
-      res
-        .status(404)
-        .send({ message: `blog with ${req.params.id} is not found!` });
-    }
-    const pdfStream = await generateBlogPDF(blog);
-    res.setHeader("Content-Type", "application/pdf");
-    pdfStream.pipe(res);
-    pdfStream.end();
-  } catch (error) {
-    res.send(500).send({ message: error.message });
-  }
-});
+//     const blog = fileAsJSONArray.find((blog) => blog.id === req.params.id);
+//     if (!blog) {
+//       res
+//         .status(404)
+//         .send({ message: `blog with ${req.params.id} is not found!` });
+//     }
+//     const pdfStream = await generateBlogPDF(blog);
+//     res.setHeader("Content-Type", "application/pdf");
+//     pdfStream.pipe(res);
+//     pdfStream.end();
+//   } catch (error) {
+//     res.send(500).send({ message: error.message });
+//   }
+// });
 
 router.get("/:id", async (req, res, next) => {
   try {
-    const fileAsBuffer = fs.readFileSync(blogsFilePath);
-
-    const fileAsString = fileAsBuffer.toString();
-
-    const fileAsJSONArray = JSON.parse(fileAsString);
-
-    const blog = fileAsJSONArray.find((blog) => blog.id === req.params.id);
+    const blog = await Blogs.findById(req.params.id).populate({
+      path: "author",
+      select: "name surname avatar",
+    });
     if (!blog) {
       res
         .status(404)
         .send({ message: `blog with ${req.params.id} is not found!` });
+    } else {
+      res.send(blog);
     }
-    res.send(blog);
   } catch (error) {
     res.send(500).send({ message: error.message });
   }
 });
-
 router.get("/:id/comments", async (req, res, next) => {
   try {
-    const fileAsBuffer = fs.readFileSync(blogsFilePath);
-
-    const fileAsString = fileAsBuffer.toString();
-
-    const fileAsJSONArray = JSON.parse(fileAsString);
-
-    const blog = fileAsJSONArray.find((blog) => blog.id === req.params.id);
+    const blog = await Blogs.findById(req.params.id);
     if (!blog) {
       res
         .status(404)
         .send({ message: `blog with ${req.params.id} is not found!` });
     }
-
-    blog.comments = blog.comments || [];
     res.send(blog.comments);
   } catch (error) {
     res.send(500).send({ message: error.message });
@@ -155,25 +112,18 @@ router.get("/:id/comments", async (req, res, next) => {
 });
 
 // delete  blog
-router.delete("/:id", async (req, res, next) => {
+router.delete("/:id", basicMiddleware, onlyOwner, async (req, res, next) => {
   try {
-    const fileAsBuffer = fs.readFileSync(blogsFilePath);
+    const blog = req.blog;
 
-    const fileAsString = fileAsBuffer.toString();
-
-    let fileAsJSONArray = JSON.parse(fileAsString);
-
-    const blog = fileAsJSONArray.find((blog) => blog.id === req.params.id);
     if (!blog) {
       res
         .status(404)
         .send({ message: `blog with ${req.params.id} is not found!` });
+    } else {
+      await Blogs.findByIdAndDelete(req.params.id);
+      res.status(204).send();
     }
-    fileAsJSONArray = fileAsJSONArray.filter(
-      (blog) => blog.id !== req.params.id
-    );
-    fs.writeFileSync(blogsFilePath, JSON.stringify(fileAsJSONArray));
-    res.status(204).send();
   } catch (error) {
     res.send(500).send({ message: error.message });
   }
@@ -182,31 +132,26 @@ router.delete("/:id", async (req, res, next) => {
 //  update blog
 router.put("/:id", async (req, res, next) => {
   try {
-    const fileAsBuffer = fs.readFileSync(blogsFilePath);
+    const updated = await Blogs.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+    });
+    res.send(updated);
+  } catch (error) {
+    res.send(500).send({ message: error.message });
+  }
+});
 
-    const fileAsString = fileAsBuffer.toString();
-
-    let fileAsJSONArray = JSON.parse(fileAsString);
-
-    const blogIndex = fileAsJSONArray.findIndex(
-      (blog) => blog.id === req.params.id
-    );
-    if (!blogIndex == -1) {
-      res
-        .status(404)
-        .send({ message: `blog with ${req.params.id} is not found!` });
+router.put("/:id/like", async (req, res, next) => {
+  try {
+    const { id } = req.body;
+    const isLiked = await Blogs.findOne({ _id: req.params.id, likes: id });
+    if (isLiked) {
+      await Blogs.findByIdAndUpdate(req.params.id, { $pull: { likes: id } });
+      res.send("UNLIKED");
+    } else {
+      await Blogs.findByIdAndUpdate(req.params.id, { $push: { likes: id } });
+      res.send("LIKED");
     }
-    const previousblogData = fileAsJSONArray[blogIndex];
-    const changedblog = {
-      ...previousblogData,
-      ...req.body,
-      updatedAt: new Date(),
-      id: req.params.id,
-    };
-    fileAsJSONArray[blogIndex] = changedblog;
-
-    fs.writeFileSync(blogsFilePath, JSON.stringify(fileAsJSONArray));
-    res.send(changedblog);
   } catch (error) {
     res.send(500).send({ message: error.message });
   }
@@ -218,35 +163,24 @@ router.put(
   checkValidationResult,
   async (req, res, next) => {
     try {
-      const { text, userName } = req.body;
-      const comment = { id: uniqid(), text, userName, createdAt: new Date() };
-      const fileAsBuffer = fs.readFileSync(blogsFilePath);
-
-      const fileAsString = fileAsBuffer.toString();
-
-      let fileAsJSONArray = JSON.parse(fileAsString);
-
-      const blogIndex = fileAsJSONArray.findIndex(
-        (blog) => blog.id === req.params.id
-      );
-      if (!blogIndex == -1) {
+      const blog = await Blogs.findById(req.params.id);
+      if (!blog) {
         res
           .status(404)
           .send({ message: `blog with ${req.params.id} is not found!` });
+      } else {
+        console.log(req.body);
+        await Blogs.findByIdAndUpdate(
+          req.params.id,
+          {
+            $push: {
+              comments: req.body,
+            },
+          },
+          { new: true }
+        );
+        res.status(204).send();
       }
-      const previousblogData = fileAsJSONArray[blogIndex];
-      previousblogData.comments = previousblogData.comments || [];
-      const changedblog = {
-        ...previousblogData,
-        ...req.body,
-        comments: [...previousblogData.comments, comment],
-        updatedAt: new Date(),
-        id: req.params.id,
-      };
-      fileAsJSONArray[blogIndex] = changedblog;
-
-      fs.writeFileSync(blogsFilePath, JSON.stringify(fileAsJSONArray));
-      res.send(changedblog);
     } catch (error) {
       console.log(error);
       res.send(500).send({ message: error.message });
@@ -254,37 +188,92 @@ router.put(
   }
 );
 
-router.put("/:id/cover", parseFile.single("cover"), async (req, res, next) => {
+router.put("/:id/comment/:commentId", async (req, res, next) => {
   try {
-    const fileAsBuffer = fs.readFileSync(blogsFilePath);
-
-    const fileAsString = fileAsBuffer.toString();
-
-    let fileAsJSONArray = JSON.parse(fileAsString);
-
-    const blogIndex = fileAsJSONArray.findIndex(
-      (blog) => blog.id === req.params.id
-    );
-    if (!blogIndex == -1) {
+    const blog = await Blogs.findById(req.params.id);
+    if (!blog) {
       res
         .status(404)
         .send({ message: `blog with ${req.params.id} is not found!` });
+    } else {
+      const commentIndex = blog.comments.findIndex(
+        (comment) => comment._id.toString() === req.params.commentId
+      );
+      if (commentIndex === -1) {
+        res.status(404).send({
+          message: `comment with ${req.params.commentId} is not found!`,
+        });
+      } else {
+        blog.comments[commentIndex] = {
+          ...blog.comments[commentIndex]._doc,
+          ...req.body,
+        };
+        await blog.save();
+        res.status(204).send();
+      }
     }
-    const previousblogData = fileAsJSONArray[blogIndex];
-    const changedblog = {
-      ...previousblogData,
-      cover: req.file.path,
-      updatedAt: new Date(),
-      id: req.params.id,
-    };
-    fileAsJSONArray[blogIndex] = changedblog;
-
-    fs.writeFileSync(blogsFilePath, JSON.stringify(fileAsJSONArray));
-    res.send(changedblog);
   } catch (error) {
     console.log(error);
     res.send(500).send({ message: error.message });
   }
 });
+
+router.delete("/:id/comment/:commentId", async (req, res, next) => {
+  try {
+    const blog = await Blogs.findById(req.params.id);
+    if (!blog) {
+      res
+        .status(404)
+        .send({ message: `blog with ${req.params.id} is not found!` });
+    } else {
+      await Blogs.findByIdAndUpdate(
+        req.params.id,
+        {
+          $pull: {
+            comments: { _id: req.params.commentId },
+          },
+        },
+        { new: true }
+      );
+      res.status(204).send();
+    }
+  } catch (error) {
+    console.log(error);
+    res.send(500).send({ message: error.message });
+  }
+});
+
+// router.put("/:id/cover", parseFile.single("cover"), async (req, res, next) => {
+//   try {
+//     const fileAsBuffer = fs.readFileSync(blogsFilePath);
+
+//     const fileAsString = fileAsBuffer.toString();
+
+//     let fileAsJSONArray = JSON.parse(fileAsString);
+
+//     const blogIndex = fileAsJSONArray.findIndex(
+//       (blog) => blog.id === req.params.id
+//     );
+//     if (!blogIndex == -1) {
+//       res
+//         .status(404)
+//         .send({ message: `blog with ${req.params.id} is not found!` });
+//     }
+//     const previousblogData = fileAsJSONArray[blogIndex];
+//     const changedblog = {
+//       ...previousblogData,
+//       cover: req.file.path,
+//       updatedAt: new Date(),
+//       id: req.params.id,
+//     };
+//     fileAsJSONArray[blogIndex] = changedblog;
+
+//     fs.writeFileSync(blogsFilePath, JSON.stringify(fileAsJSONArray));
+//     res.send(changedblog);
+//   } catch (error) {
+//     console.log(error);
+//     res.send(500).send({ message: error.message });
+//   }
+// });
 
 export default router;

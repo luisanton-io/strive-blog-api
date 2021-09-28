@@ -1,14 +1,19 @@
-# Strive Blog API
+Today you continue building Blog Post API.
 
-If not done yet, please host backend on Heroku and frontend on Vercel.
+Backend needs to grant data persistance via MongoDB
 
-Today's goal is to add the feature to export a blog post content into a PDF file.
+Your backend should now save authors/users in their own collection, therefore you should link blogposts to their corresponding author and you should have CRUD for authors/users.
 
-## BACKEND
-Create an endpoint dedicated to export all the relevant data of a blog post into a well styled downloadable PDF file.
+Complete past homework :)
 
-[EXTRA] add blogpost image to PDF too
+Extras
 
-## FRONTEND
+👍 Likes system
 
-Create a button on single blog post page to permit PDF download
+Likes should be an array of user ids that is attached on the blogpost schema.
+
+Whenever you click on the like button add the id of the user to that array.
+
+Therefore you know if someone liked or not by checking if it is in the array!
+
+You can check length of array to get total claps , its simple!

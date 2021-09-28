@@ -19,16 +19,10 @@ const schema = {
       errorMessage: "content validation failed , type must be string ",
     },
   },
-  "author.name": {
+  author: {
     in: ["body"],
-    isString: {
-      errorMessage: "author.name validation failed , type must be string",
-    },
-  },
-  "author.avatar": {
-    in: ["body"],
-    isString: {
-      errorMessage: "author.avatar validation failed , type must be string",
+    isMongoId: {
+      errorMessage: "author must be a valid mongodb id",
     },
   },
   "readTime.value": {
@@ -67,9 +61,14 @@ const commentSchema = {
       errorMessage: "Text field is required for comment",
     },
   },
-  userName: {
+  "user.name": {
     isString: {
       errorMessage: "User name is required for comment",
+    },
+  },
+  "user.avatar": {
+    isString: {
+      errorMessage: "User avatar is required for comment",
     },
   },
 };

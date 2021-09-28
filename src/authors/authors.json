@@ -1,1 +1,12 @@
-[]
+[
+  {
+    "id": "602ueorukp6qtsty",
+    "name": "Diego",
+    "surname": "Banovaz",
+    "email": "diego@strive.school",
+    "dateOfBirth": "01/01/1989",
+    "avatar": "https://ui-avatars.com/api/?name=Diego+Banovaz",
+    "createdAt": "2021-05-27T10:18:17.781Z",
+    "updatedAt": "2021-05-27T10:18:17.781Z"
+  }
+]
