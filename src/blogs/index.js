@@ -1,5 +1,6 @@
 import express from "express";
 import basicMiddleware from "../utils/auth/basic.js";
+import { JwtMiddleware } from "../utils/auth/jwt.js";
 import onlyOwner from "../utils/auth/onlyOwner.js";
 import Blogs from "./schema.js";
 import {
@@ -43,6 +44,11 @@ router.get("/", async (req, res, next) => {
 // create  blog
 router.post(
   "/",
+  JwtMiddleware,
+  (req, res, next) => {
+    req.body.author = req.user._id.toString()
+    next()
+  },
   checkBlogPostSchema,
   checkValidationResult,
   async (req, res, next) => {
@@ -112,7 +118,7 @@ router.get("/:id/comments", async (req, res, next) => {
 });
 
 // delete  blog
-router.delete("/:id", basicMiddleware, onlyOwner, async (req, res, next) => {
+router.delete("/:id", JwtMiddleware, onlyOwner, async (req, res, next) => {
   try {
     const blog = req.blog;
 

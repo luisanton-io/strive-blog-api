@@ -80,6 +80,9 @@ export const checkSearchSchema = checkSchema(searchSchema);
 export const checkBlogPostSchema = checkSchema(schema);
 
 export const checkValidationResult = (req, res, next) => {
+
+  req.body.author = req.user._id.toString();
+
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     const error = new Error("Blog post validation is failed");

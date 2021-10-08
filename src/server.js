@@ -15,6 +15,7 @@ import path, { dirname } from "path";
 import { fileURLToPath } from "url";
 
 import mongoose from "mongoose";
+import authRouter from "./authRouter/index.js";
 
 const __filename = fileURLToPath(import.meta.url);
 
@@ -46,9 +47,14 @@ server.use(express.json());
 
 server.use(express.static(publicDirectory));
 
+server.use("/auth", authRouter);
+
 server.use("/authors", authorsRouter);
 
 server.use("/blogs", blogsRouter);
+
+
+
 
 server.use(errorHandler);
 

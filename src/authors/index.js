@@ -16,6 +16,7 @@ import Blogs from "../blogs/schema.js";
 import { generateCSV } from "../utils/csv/index.js";
 
 import basicMiddleware from "../utils/auth/basic.js"
+import { JwtMiddleware } from "../utils/auth/jwt.js";
 
 const __filename = fileURLToPath(import.meta.url);
 
@@ -59,20 +60,8 @@ router.get("/", async (req, res, next) => {
 //   }
 // });
 
-// create  author
-router.post("/", async (req, res, next) => {
-  try {
-    const author = await new Authors(req.body).save();
-    delete author._doc.password
-
-    res.send(author)
-  } catch (error) {
-    console.log({ error });
-    res.send(500).send({ message: error.message });
-  }
-});
-
-router.get("/me/stories", basicMiddleware, async (req, res, next) => {
+// router.get("/me/stories", basicMiddleware, async (req, res, next) => {
+router.get("/me/stories", JwtMiddleware, async (req, res, next) => {
   try {
     const posts = await Blogs.find({ author: req.user._id.toString() })
 
