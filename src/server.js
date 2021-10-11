@@ -17,6 +17,8 @@ import { fileURLToPath } from "url";
 import mongoose from "mongoose";
 import authRouter from "./authRouter/index.js";
 
+import passport from "passport"
+
 const __filename = fileURLToPath(import.meta.url);
 
 const __dirname = dirname(__filename);
@@ -41,7 +43,10 @@ const corsOptions = {
   },
 };
 
+passport.use(googleStrategy)
+
 server.use(cors(corsOptions));
+server.use(passport.initialize())
 
 server.use(express.json());
 
