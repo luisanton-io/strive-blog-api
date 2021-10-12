@@ -7,12 +7,13 @@ const authorSchema = new mongoose.Schema(
     surname: { type: String, required: true },
     email: { type: String, required: true },
     //password
-    password: { type: String, required: true },
+    password: { type: String, required: function () { return !Boolean(this.googleId) } },
     dateOfBirth: { type: Date, required: true },
     avatar: {
       type: String,
       default: "https://ui-avatars.com/api/?name=Unnamed+User",
     },
+    googleId: { type: String, required: function () { return !Boolean(this.password) } }
   },
   { timestamps: true }
 );
