@@ -1,4 +1,5 @@
 import express from "express";
+import passport from "passport";
 import AuthorModel from "../authors/schema.js";
 import { generateJwt } from "../utils/auth/jwt.js";
 
@@ -47,5 +48,14 @@ authRouter.post("/register", async (req, res, next) => {
         res.send(500).send({ message: error.message });
     }
 });
+
+authRouter.get("/googleLogin", passport.authenticate("google", { scope: ["profile", "email"] }))
+
+authRouter.get("/googleRedirect", passport.authenticate("google"), (req, res, next) => {
+
+    console.log(req.user)
+
+    res.redirect(`http://localhost:3000?accessToken=${req.user.token}}`)
+})
 
 export default authRouter

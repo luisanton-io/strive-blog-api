@@ -18,6 +18,7 @@ import mongoose from "mongoose";
 import authRouter from "./authRouter/index.js";
 
 import passport from "passport"
+import googleStrategy from "./utils/auth/oauth.js";
 
 const __filename = fileURLToPath(import.meta.url);
 
@@ -43,9 +44,10 @@ const corsOptions = {
   },
 };
 
-passport.use(googleStrategy)
+passport.use("google", googleStrategy);
 
-server.use(cors(corsOptions));
+// server.use(cors(corsOptions));
+server.use(cors());
 server.use(passport.initialize())
 
 server.use(express.json());
